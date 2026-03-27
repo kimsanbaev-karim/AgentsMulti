@@ -1,6 +1,6 @@
-﻿from agentscope.agent import ReActAgent, UserAgent
-from agentscope.model import DashScopeChatModel
-from agentscope.formatter import DashScopeChatFormatter
+from agentscope.agent import ReActAgent, UserAgent
+from agentscope.model import AnthropicChatModel
+from agentscope.formatter import AnthropicChatFormatter
 from agentscope.memory import InMemoryMemory
 from agentscope.tool import Toolkit, execute_python_code, execute_shell_command
 import os, asyncio
@@ -14,13 +14,14 @@ async def main():
     agent = ReActAgent(
         name="Friday",
         sys_prompt="You're a helpful assistant named Friday.",
-        model=DashScopeChatModel(
-            model_name="qwen-max",
-            api_key=os.environ["DASHSCOPE_API_KEY"],
+        model=AnthropicChatModel(
+            model_name="glm-4.6",
+            api_key=os.environ["GLM_API_KEY"],
             stream=True,
+            client_kwargs={"base_url": "https://api.z.ai/api/anthropic"},
         ),
         memory=InMemoryMemory(),
-        formatter=DashScopeChatFormatter(),
+        formatter=AnthropicChatFormatter(),
         toolkit=toolkit,
     )
 
@@ -28,9 +29,9 @@ async def main():
 
     msg = None
     while True:
-        msg = await agent(msg)
         msg = await user(msg)
         if msg.get_text_content() == "exit":
             break
+        msg = await agent(msg)
 
 asyncio.run(main())
