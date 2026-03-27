@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Agent Roundtable</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: hsl(220, 20%, 97%);
+      --surface: hsl(0, 0%, 100%);
+      --border: hsl(220, 13%, 90%);
+      --text: hsl(222, 47%, 11%);
+      --muted: hsl(220, 9%, 46%);
+      --primary: hsl(221, 83%, 53%);
+      --primary-hover: hsl(221, 83%, 44%);
+      --radius: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px 16px 48px;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 0.9rem; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Form ── */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    textarea { min-height: 72px; }
+
+    textarea:disabled, input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Agents header ── */
+    .agents-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    /* ── Agents grid ── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    /* ── Agent card ── */
+    .agent-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .agent-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .agent-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .agent-card input[type="text"] {
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .agent-field { margin-bottom: 8px; }
+    .agent-field:last-child { margin-bottom: 0; }
+
+    /* ── Buttons ── */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      font-family: inherit;
+      transition: background 0.15s, opacity 0.15s, color 0.15s;
+    }
+
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:not(:disabled):hover { background: var(--primary-hover); }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:not(:disabled):hover { background: var(--border); }
+
+    .btn-remove {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 2px 6px;
+      font-size: 0.85rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-remove:not(:disabled):hover { color: hsl(0, 72%, 51%); }
+
+    .btn-add {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      padding: 5px 13px;
+      font-size: 0.82rem;
+    }
+    .btn-add:not(:disabled):hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .controls .btn-primary { padding: 10px 26px; font-size: 0.95rem; }
+
+    /* ── Error ── */
+    .error-box {
+      background: hsl(0, 72%, 96%);
+      border: 1px solid hsl(0, 72%, 86%);
+      color: hsl(0, 72%, 38%);
+      border-radius: var(--radius);
+      padding: 11px 15px;
+      margin-bottom: 14px;
+      font-size: 0.875rem;
+    }
+
+    /* ── Status ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .status-dot.live {
+      background: hsl(142, 76%, 36%);
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    /* ── Messages ── */
+    #messages { display: flex; flex-direction: column; gap: 10px; }
+
+    .message {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 8px;
+    }
+
+    .msg-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .msg-name { font-weight: 600; font-size: 0.9rem; }
+
+    .msg-body {
+      line-height: 1.65;
+      font-size: 0.875rem;
+      word-break: break-word;
+    }
+
+    /* markdown inside messages */
+    .msg-body p { margin: 0 0 0.5em; }
+    .msg-body p:last-child { margin-bottom: 0; }
+    .msg-body h1, .msg-body h2, .msg-body h3,
+    .msg-body h4, .msg-body h5, .msg-body h6 {
+      margin: 0.75em 0 0.3em;
+      font-weight: 600;
+    }
+    .msg-body ul, .msg-body ol { padding-left: 1.4em; margin: 0.4em 0; }
+    .msg-body li { margin-bottom: 0.15em; }
+    .msg-body code {
+      background: hsl(220,13%,93%);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      font-family: "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.82em;
+    }
+    .msg-body pre {
+      background: hsl(220,13%,93%);
+      border-radius: 6px;
+      padding: 10px 13px;
+      overflow-x: auto;
+      margin: 0.5em 0;
+    }
+    .msg-body pre code { background: none; padding: 0; font-size: 0.83em; }
+    .msg-body blockquote {
+      border-left: 3px solid var(--border);
+      margin: 0.4em 0;
+      padding: 0.1em 0.8em;
+      color: var(--muted);
+    }
+    .msg-body a { color: var(--primary); }
+    .msg-body hr { border: none; border-top: 1px solid var(--border); margin: 0.6em 0; }
+    .msg-body table { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: 0.85em; }
+    .msg-body th, .msg-body td { border: 1px solid var(--border); padding: 5px 9px; }
+    .msg-body th { background: var(--bg); font-weight: 600; }
+
+    /* ── Typing dots ── */
+    .typing-body {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .dots span {
+      display: inline-block;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1.2s infinite both;
+    }
+
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.15; transform: scale(0.7); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4rem; }
+      .controls { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Multi-Agent Roundtable</h1>
+  <p class="subtitle">Настройте агентов и системную команду, затем нажмите «Начать беседу»</p>
+
+  <!-- System prompt -->
+  <div class="card">
+    <div class="card-title">Системная команда</div>
+    <textarea id="systemPrompt" rows="3"></textarea>
+  </div>
+
+  <!-- Agents -->
+  <div class="card">
+    <div class="agents-header">
+      <div class="card-title" style="margin-bottom:0">
+        Агенты (<span id="agentCount">0</span>/10)
+      </div>
+      <button class="btn-add" id="addBtn" onclick="addAgent()">+ Агент</button>
+    </div>
+    <div class="agents-grid" id="agentsGrid"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox" style="display:none"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn-primary" id="startBtn" onclick="startConversation()">Начать беседу</button>
+    <button class="btn-secondary" onclick="clearMessages()">Очистить диалог</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Готово к запуску</span>
+  </div>
+
+  <!-- Dialogue -->
+  <div id="messages"></div>
+
+</div>
+<script>
+  // ── Palette ─────────────────────────────────────────────────────────────
+  const COLORS = [
+    "hsl(221,83%,53%)",
+    "hsl(142,76%,36%)",
+    "hsl(339,90%,51%)",
+    "hsl(271,81%,54%)",
+    "hsl(187,85%,32%)",
+    "hsl(25,95%,48%)",
+    "hsl(43,90%,42%)",
+    "hsl(310,70%,45%)",
+    "hsl(0,72%,51%)",
+    "hsl(234,89%,60%)",
+  ];
+
+  // ── Defaults ─────────────────────────────────────────────────────────────
+  const DEFAULT_SYSTEM =
+    "Вы собрались вместе, чтобы сделать игру про ковбоев Westland. " +
+    "Представьтесь друг другу кратко. И озвучьте одну главную идею, " +
+    "которая, по вашему мнению, необходима в такой игре.";
+
+  const DEFAULT_AGENTS = [
+    {
+      name: "Anton",
+      prompt: "Ты Антон — опытный геймдизайнер в игровой индустрии.",
+    },
+    {
+      name: "Pavel",
+      prompt: "Ты Павел — сеньор программист с большим опытом разработки игр.",
+    },
+    {
+      name: "Yulia",
+      prompt: "Ты Юлия — UX/UI дизайнер с опытом в игровой индустрии.",
+    },
+  ];
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let currentController = null;  // AbortController for active fetch
+  let agentColorMap = {};        // name → color at conversation start
+  let cardSeq = 0;               // unique card IDs
+
+  // ── Agent cards ──────────────────────────────────────────────────────────
+  function addAgent(name = "", prompt = "") {
+    const grid = document.getElementById("agentsGrid");
+    if (grid.children.length >= 10) return;
+    const id = ++cardSeq;
+    const card = document.createElement("div");
+    card.className = "agent-card";
+    card.dataset.cid = id;
+    card.innerHTML = `
+      <div class="agent-card-header">
+        <div class="agent-dot" data-dot></div>
+        <input type="text" class="agent-name" placeholder="Имя" value="${esc(name)}"
+               oninput="syncUI()">
+        <button class="btn-remove" onclick="removeAgent(this)" title="Удалить">✕</button>
+      </div>
+      <div class="agent-field">
+        <label>Системный промпт</label>
+        <textarea class="agent-prompt" rows="3" placeholder="Роль агента...">${escHtml(prompt)}</textarea>
+      </div>
+    `;
+    grid.appendChild(card);
+    syncUI();
+  }
+
+  function removeAgent(btn) {
+    const grid = document.getElementById("agentsGrid");
+    if (grid.children.length <= 1) return;
+    btn.closest(".agent-card").remove();
+    syncUI();
+  }
+
+  function syncUI() {
+    const cards = [...document.querySelectorAll(".agent-card")];
+    cards.forEach((card, i) => {
+      const dot = card.querySelector("[data-dot]");
+      dot.style.background = COLORS[i % COLORS.length];
+      dot.textContent = i + 1;
+      card.querySelector(".btn-remove").disabled = cards.length <= 1;
+    });
+    document.getElementById("agentCount").textContent = cards.length;
+    document.getElementById("addBtn").disabled = cards.length >= 10;
+  }
+
+  function collectAgents() {
+    return [...document.querySelectorAll(".agent-card")].map(card => ({
+      name: card.querySelector(".agent-name").value.trim() || "Agent",
+      prompt: card.querySelector(".agent-prompt").value.trim(),
+    }));
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  document.getElementById("systemPrompt").value = DEFAULT_SYSTEM;
+  DEFAULT_AGENTS.forEach(a => addAgent(a.name, a.prompt));
+
+  // ── Fetch + SSE ───────────────────────────────────────────────────────────
+  async function startConversation() {
+    hideError();
+    clearMessages();
+
+    const agents = collectAgents();
+    if (!agents.length) { showError("Добавьте хотя бы одного агента."); return; }
+
+    const system = document.getElementById("systemPrompt").value.trim();
+
+    agentColorMap = {};
+    agents.forEach((a, i) => { agentColorMap[a.name] = COLORS[i % COLORS.length]; });
+
+    if (currentController) currentController.abort();
+    currentController = new AbortController();
+
+    setBusy(true);
+
+    try {
+      const resp = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ system, agents }),
+        signal: currentController.signal,
+      });
+
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop();
+        for (const part of parts) {
+          if (part.startsWith("data: ")) {
+            try { handle(JSON.parse(part.slice(6))); } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") showError("Ошибка соединения: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handle(msg) {
+    if (msg.type === "agent_typing") {
+      showTyping(msg.name);
+    } else if (msg.type === "agent_message") {
+      placeMessage(msg.name, msg.text);
+    } else if (msg.type === "conversation_done") {
+      setStatus("Беседа завершена", false);
+    } else if (msg.type === "error") {
+      showError(msg.message || "Неизвестная ошибка");
+    }
+  }
+
+  // ── Message rendering ─────────────────────────────────────────────────────
+  function color(name) {
+    return agentColorMap[name] || COLORS[0];
+  }
+
+  function initials(name) {
+    return (name || "?").trim().slice(0, 2).toUpperCase();
+  }
+
+  function showTyping(name) {
+    const c = color(name);
+    const div = document.createElement("div");
+    div.className = "message";
+    div.id = `typing-${cssId(name)}`;
+    div.innerHTML = `
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:${c}">${initials(name)}</div>
+        <span class="msg-name" style="color:${c}">${escHtml(name)}</span>
+      </div>
+      <div class="typing-body" style="color:${c}">
+        <span class="dots"><span></span><span></span><span></span></span>
+        печатает...
+      </div>
+    `;
+    document.getElementById("messages").appendChild(div);
+    div.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  function placeMessage(name, text) {
+    const c = color(name);
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML = `
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:${c}">${initials(name)}</div>
+        <span class="msg-name" style="color:${c}">${escHtml(name)}</span>
+      </div>
+      <div class="msg-body">${marked.parse(text)}</div>
+    `;
+    const typingEl = document.getElementById(`typing-${cssId(name)}`);
+    if (typingEl) {
+      typingEl.replaceWith(div);
+    } else {
+      document.getElementById("messages").appendChild(div);
+    }
+    div.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
+  function clearMessages() {
+    document.getElementById("messages").innerHTML = "";
+    hideError();
+  }
+
+  // ── Status / error ────────────────────────────────────────────────────────
+  function setBusy(busy) {
+    document.getElementById("startBtn").disabled = busy;
+    document.getElementById("addBtn").disabled = busy || document.querySelectorAll(".agent-card").length >= 10;
+    document.querySelectorAll(".btn-remove, .agent-name, .agent-prompt, #systemPrompt")
+      .forEach(el => el.disabled = busy);
+    if (busy) {
+      setStatus("Беседа идёт…", true);
+    } else {
+      document.getElementById("statusDot").classList.remove("live");
+      if (document.getElementById("statusText").textContent === "Беседа идёт…")
+        setStatus("Готово к запуску", false);
+    }
+  }
+
+  function setStatus(text, live) {
+    document.getElementById("statusText").textContent = text;
+    document.getElementById("statusDot").classList.toggle("live", live);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorBox");
+    el.textContent = msg;
+    el.style.display = "";
+  }
+
+  function hideError() {
+    document.getElementById("errorBox").style.display = "none";
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function esc(s) {
+    return String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function cssId(name) {
+    // safe CSS id: replace non-alphanumeric with underscore
+    return String(name).replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+</script>
+</body>
+</html>
