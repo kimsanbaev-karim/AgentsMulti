@@ -34,8 +34,6 @@ async def index():
 
 def _make_agent(cfg: dict) -> ReActAgent:
     tk = Toolkit()
-    tk.register_tool_function(execute_python_code)
-    tk.register_tool_function(execute_shell_command)
 
     model = AnthropicChatModel(
         model_name="glm-4.6",
