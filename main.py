@@ -4,6 +4,8 @@ from agentscope.formatter import AnthropicChatFormatter
 from agentscope.memory import InMemoryMemory
 from agentscope.tool import Toolkit, execute_python_code, execute_shell_command
 import os, asyncio
+from dotenv import load_dotenv
+load_dotenv()
 
 
 async def main():
